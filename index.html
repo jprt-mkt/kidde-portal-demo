@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal do Parceiro - Kidde Global Solutions</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Configuration & Custom Styles -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kidde: {
+                            red: '#CE1126', 
+                            dark: '#1F2937',
+                            light: '#F3F4F6',
+                            blue: '#005696'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        .chart-container { position: relative; width: 100%; height: 250px; max-height: 300px; }
+        
+        .nav-item.active { border-bottom: 2px solid #CE1126; color: #CE1126; font-weight: 600; }
+        .admin-nav-item.active { background-color: #CE1126; color: white; }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Drag & Drop Zone */
+        .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.2s ease; }
+        .drop-zone.dragover { border-color: #CE1126; background-color: #fef2f2; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- ========================================== -->
+    <!-- VIEW: LOGIN & AUTHENTICATION               -->
+    <!-- ========================================== -->
+    <div id="view-login" class="flex-1 flex items-center justify-center bg-slate-100 overflow-y-auto w-full h-full absolute top-0 left-0 z-50">
+        <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border border-slate-200 m-4">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 bg-kidde-red rounded mx-auto flex items-center justify-center text-white font-bold text-2xl mb-4">K</div>
+                <h2 class="text-2xl font-bold text-slate-900">Portal do Parceiro</h2>
+                <p class="text-slate-500 text-sm mt-1">Kidde Global Solutions</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-slate-200 mb-6">
+                <button onclick="switchLoginTab('partner')" id="tab-partner" class="flex-1 py-2 text-sm font-bold border-b-2 border-kidde-red text-kidde-red">Parceiro</button>
+                <button onclick="switchLoginTab('admin')" id="tab-admin" class="flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">Admin</button>
+            </div>
+
+            <!-- Partner Login Form -->
+            <form id="form-login-partner" onsubmit="handlePartnerLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Número do Cliente (ID)</label>
+                    <input type="text" id="login-id" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" placeholder="Ex: KGS-8821" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Senha</label>
+                    <input type="password" id="login-pass" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" required>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <button type="button" onclick="showModal('modal-register')" class="text-kidde-blue hover:underline font-medium">Primeiro Acesso?</button>
+                    <button type="button" onclick="showModal('modal-forgot-pass')" class="text-slate-500 hover:underline">Esqueci a senha</button>
+                </div>
+                <button type="submit" class="w-full bg-kidde-red text-white font-bold py-2 rounded hover:bg-red-700 transition">Entrar no Portal</button>
+                <p id="login-error" class="text-red-500 text-xs text-center hidden mt-2">ID ou Senha incorretos.</p>
+            </form>
+
+            <!-- Admin Login Form -->
+            <form id="form-login-admin" onsubmit="handleAdminLogin(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuário Administrador</label>
+                    <input type="text" id="admin-user" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" placeholder="admin" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Senha de Acesso</label>
+                    <input type="password" id="admin-pass" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" placeholder="admin" required>
+                </div>
+                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-2 rounded hover:bg-slate-800 transition">Acessar Painel</button>
+                <p class="text-xs text-slate-400 text-center mt-2">Dica: Use admin / admin para testar.</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: PARTNER PORTAL                       -->
+    <!-- ========================================== -->
+    <div id="view-partner" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+        <!-- Partner Nav -->
+        <nav class="bg-white shadow-md z-40 shrink-0">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 flex items-center gap-2">
+                            <div class="w-8 h-8 bg-kidde-red rounded-sm flex items-center justify-center text-white font-bold text-xl">K</div>
+                            <span class="font-bold text-xl tracking-tight text-slate-900 hidden sm:block">Kidde <span class="font-light">Portal</span></span>
+                        </div>
+                        <div class="ml-4 sm:ml-8 flex space-x-4 sm:space-x-8">
+                            <button onclick="scrollToSection('dashboard')" class="nav-item active px-1 pt-1 text-sm font-medium h-full">Dashboard</button>
+                            <button onclick="scrollToSection('tiers')" class="nav-item px-1 pt-1 text-sm font-medium text-slate-500 h-full">Benefícios</button>
+                            <button onclick="scrollToSection('operations')" class="nav-item px-1 pt-1 text-sm font-medium text-slate-500 h-full">Operacional</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-right hidden md:block">
+                            <div id="partner-header-name" class="text-sm font-medium text-slate-900">Empresa</div>
+                            <div id="partner-header-id" class="text-xs text-slate-500">ID: ---</div>
+                        </div>
+                        <button onclick="logout()" class="text-xs text-red-600 font-bold hover:underline">Sair</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Partner Content -->
+        <main class="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-8">
+            <div class="max-w-7xl mx-auto space-y-8 pb-12">
+                
+                <!-- Hero Dashboard -->
+                <section id="dashboard" class="scroll-mt-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-6 md:p-8 flex flex-col md:flex-row gap-8">
+                            
+                            <!-- Status -->
+                            <div class="flex-1">
+                                <h2 class="text-2xl font-bold text-slate-900 mb-2">Painel de Desempenho</h2>
+                                <p class="text-slate-500 mb-6 text-sm">Acompanhe seu status e acesse seus fundos.</p>
+                                
+                                <div class="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Nível Atual</span>
+                                        <span id="partner-tier-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">PREFERRED</span>
+                                    </div>
+                                    <div class="flex items-baseline gap-2 mb-2">
+                                        <span class="text-4xl font-bold text-slate-900" id="partner-revenue">$0</span>
+                                        <span class="text-xs text-slate-500">Receita YTD</span>
+                                    </div>
+                                    
+                                    <!-- Past Due Alert -->
+                                    <div id="partner-pastdue-alert" class="hidden mt-4 bg-red-50 border-l-4 border-kidde-red p-3 rounded-r">
+                                        <p class="text-sm text-red-700 font-bold">⚠ Status Past Due</p>
+                                        <p class="text-xs text-red-600 mt-1">Acesso ao Fundo de Marketing bloqueado. Regularize pendências.</p>
+                                    </div>
+
+                                    <!-- Marketing Fund -->
+                                    <div id="partner-fund-box" class="mt-4 flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="bg-green-100 w-8 h-8 rounded-full flex items-center justify-center text-green-600 font-bold">$</div>
+                                            <div>
+                                                <p class="text-sm font-bold text-green-800">Fundo de Marketing</p>
+                                                <p class="text-xs text-green-600">Disponível para uso</p>
+                                            </div>
+                                        </div>
+                                        <button onclick="showModal('modal-marketing-fund')" class="text-xs bg-white border border-green-300 text-green-700 font-bold px-3 py-1.5 rounded hover:bg-green-100 transition">Acessar</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Chart -->
+                            <div class="w-full md:w-1/3 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 pl-0 md:pl-8">
+                                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Progresso - Próximo Nível</h3>
+                                <div class="chart-container"><canvas id="partnerProgressChart"></canvas></div>
+                                <div class="text-center mt-2">
+                                    <p class="text-sm text-slate-600">Próximo: <span id="partner-next-tier" class="font-bold text-slate-900">-</span></p>
+                                    <p class="text-xs text-slate-500 mt-1">Faltam <span id="partner-amount-next" class="font-bold text-kidde-red">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tiers -->
+                <section id="tiers" class="scroll-mt-6">
+                    <h2 class="text-xl font-bold text-slate-900 mb-4">Estrutura de Benefícios</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                            <h3 class="font-bold text-slate-800">Qualify</h3>
+                            <p class="text-xs text-slate-500 mb-3">>$50k USD</p>
+                            <ul class="text-xs text-slate-600 space-y-1">
+                                <li>• Acesso ao Portal</li>
+                                <li>• Suporte Standard</li>
+                            </ul>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-200 relative">
+                            <span class="absolute top-2 right-2 text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-bold">ATUAL</span>
+                            <h3 class="font-bold text-blue-800">Preferred</h3>
+                            <p class="text-xs text-blue-600 mb-3">>$200k USD</p>
+                            <ul class="text-xs text-blue-900 space-y-1 font-medium">
+                                <li>• Fundo Mkt: 1.5%</li>
+                                <li>• Rebate: 1.0%</li>
+                                <li>• Suporte Prioritário</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 opacity-75">
+                            <h3 class="font-bold text-slate-800">Elite Strategic</h3>
+                            <p class="text-xs text-slate-500 mb-3">>$400k USD</p>
+                            <ul class="text-xs text-slate-600 space-y-1">
+                                <li>• Fundo Mkt: 2.5%</li>
+                                <li>• Rebate: 2.0%</li>
+                                <li>• Suporte 8x5</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 opacity-75">
+                            <h3 class="font-bold text-slate-800">Million Dollar</h3>
+                            <p class="text-xs text-slate-500 mb-3">>$1M USD</p>
+                            <ul class="text-xs text-slate-600 space-y-1">
+                                <li>• Fundo Mkt: 3.0%+</li>
+                                <li>• Rebate: 4.0%</li>
+                                <li>• Suporte 24x7</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Operations Hub -->
+                <section id="operations" class="scroll-mt-6">
+                    <h2 class="text-xl font-bold text-slate-900 mb-4">Hub Operacional</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                            <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-xl mb-3">📄</div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-1">Evidências de Fundo</h3>
+                            <p class="text-[11px] text-slate-500 mb-4">Suba comprovações de uso de verba para aprovação.</p>
+                            <button onclick="showModal('modal-upload-evidence')" class="mt-auto w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded">Enviar Evidência</button>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-xl mb-3">📦</div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-1">Pedir Materiais</h3>
+                            <p class="text-[11px] text-slate-500 mb-4">Solicite catálogos, brindes e materiais Kidde.</p>
+                            <button onclick="showModal('modal-request-material')" class="mt-auto w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded">Nova Solicitação</button>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-xl mb-3">🎯</div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-1">Registro de Projetos</h3>
+                            <p class="text-[11px] text-slate-500 mb-4">Garanta proteção de preço em novas oportunidades.</p>
+                            <a href="#" onclick="alert('Redirecionando para o sistema global de CRM (Salesforce/Dynamics)...')" class="mt-auto block w-full py-2 bg-kidde-red hover:bg-red-700 text-white text-xs font-bold rounded">Registrar (CRM)</a>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-8 h-8 bg-slate-100 rounded flex items-center justify-center text-sm">🔗</div>
+                                <h3 class="font-bold text-slate-800 text-sm">Acesso Rápido</h3>
+                            </div>
+                            <ul class="space-y-2" id="partner-quick-links"></ul>
+                        </div>
+
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW: ADMIN DASHBOARD                      -->
+    <!-- ========================================== -->
+    <div id="view-admin" class="hidden flex-1 flex h-full overflow-hidden bg-slate-100">
+        <!-- Admin Sidebar -->
+        <aside class="w-64 bg-slate-900 text-white flex flex-col shrink-0">
+            <div class="p-6">
+                <div class="w-8 h-8 bg-kidde-red rounded text-center leading-8 font-bold text-xl mb-2">K</div>
+                <h1 class="font-bold text-lg">Kidde Admin</h1>
+                <p class="text-xs text-slate-400">Portal Management</p>
+            </div>
+            <nav class="flex-1 px-4 space-y-2 mt-4">
+                <button onclick="switchAdminTab('clientes')" id="admin-tab-clientes" class="admin-nav-item active w-full text-left px-4 py-2 rounded text-sm font-medium transition">👥 Gestão de Clientes</button>
+                <button onclick="switchAdminTab('solicitacoes')" id="admin-tab-solicitacoes" class="admin-nav-item w-full text-left px-4 py-2 rounded text-slate-300 hover:bg-slate-800 text-sm font-medium transition">📋 Solicitações / Fundo</button>
+                <button onclick="switchAdminTab('config')" id="admin-tab-config" class="admin-nav-item w-full text-left px-4 py-2 rounded text-slate-300 hover:bg-slate-800 text-sm font-medium transition">⚙️ Configurações</button>
+                <button onclick="switchAdminTab('comunicacao')" id="admin-tab-comunicacao" class="admin-nav-item w-full text-left px-4 py-2 rounded text-slate-300 hover:bg-slate-800 text-sm font-medium transition">✉️ Disparos de Email</button>
+            </nav>
+            <div class="p-4 border-t border-slate-800">
+                <button onclick="logout()" class="w-full py-2 bg-slate-800 text-slate-300 rounded text-sm hover:bg-slate-700 transition">Sair do Sistema</button>
+            </div>
+        </aside>
+
+        <!-- Admin Main Content -->
+        <main class="flex-1 p-8 overflow-y-auto">
+            
+            <!-- Tab: Clientes -->
+            <div id="admin-section-clientes" class="admin-section block">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Gestão de Clientes (Canais)</h2>
+                        <p class="text-sm text-slate-500">Adicione, edite números e gerencie o acesso das contas.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="showModal('modal-admin-add-client')" class="bg-kidde-red text-white px-4 py-2 rounded text-sm font-bold shadow hover:bg-red-700">Novo Cliente Manual</button>
+                        <button onclick="showModal('modal-admin-upload-excel')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold shadow hover:bg-green-700">Subir Base Excel</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                            <tr>
+                                <th class="p-4 font-bold">ID Cliente</th>
+                                <th class="p-4 font-bold">Nome da Conta</th>
+                                <th class="p-4 font-bold">Receita (YTD)</th>
+                                <th class="p-4 font-bold">Status</th>
+                                <th class="p-4 font-bold text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-clients-tbody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Solicitações -->
+            <div id="admin-section-solicitacoes" class="admin-section hidden">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">Solicitações Recebidas</h2>
+                <p class="text-sm text-slate-500 mb-6">Evidências de fundo de marketing e pedidos de materiais.</p>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                            <tr>
+                                <th class="p-4 font-bold">Data</th>
+                                <th class="p-4 font-bold">Cliente (ID)</th>
+                                <th class="p-4 font-bold">Tipo</th>
+                                <th class="p-4 font-bold">Detalhe/Arquivo</th>
+                                <th class="p-4 font-bold">Status</th>
+                                <th class="p-4 font-bold text-right">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-requests-tbody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Configurações -->
+            <div id="admin-section-config" class="admin-section hidden">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">Configurações da Plataforma</h2>
+                <p class="text-sm text-slate-500 mb-6">Gerencie os links exibidos na área "Acesso Rápido" do parceiro.</p>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-2xl">
+                    <h3 class="font-bold text-slate-800 mb-4">Links de Acesso Rápido</h3>
+                    <div id="admin-links-container" class="space-y-3 mb-4"></div>
+                    <div class="flex gap-2 border-t border-slate-100 pt-4 mt-4">
+                        <input type="text" id="new-link-title" placeholder="Título do Link" class="flex-1 border rounded px-3 py-2 text-sm">
+                        <input type="text" id="new-link-url" placeholder="URL (https://...)" class="flex-1 border rounded px-3 py-2 text-sm">
+                        <button onclick="addQuickLink()" class="bg-slate-800 text-white px-4 py-2 rounded text-sm font-bold">Adicionar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Comunicação -->
+            <div id="admin-section-comunicacao" class="admin-section hidden">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">Automação de Comunicação</h2>
+                <p class="text-sm text-slate-500 mb-6">Dispare lembretes ou teste os templates de email enviados pelo sistema.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="text-3xl mb-3">⏳</div>
+                        <h3 class="font-bold text-slate-800 mb-1">Lembrete de 30 Dias (Inativos)</h3>
+                        <p class="text-xs text-slate-500 mb-4">Envia um email para todos os clientes que não logaram nos últimos 30 dias contendo link de acesso, usuário e senha.</p>
+                        <button onclick="trigger30DayEmails()" class="bg-kidde-blue text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-800">Disparar Lembretes Agora</button>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="text-3xl mb-3">👋</div>
+                        <h3 class="font-bold text-slate-800 mb-1">Preview: Email de Boas-Vindas</h3>
+                        <p class="text-xs text-slate-500 mb-4">Veja o template padrão de convite enviado para novos clientes cadastrados na plataforma.</p>
+                        <button onclick="previewWelcomeEmail()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded text-sm font-bold hover:bg-slate-300">Ver Template</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODALS (Pop-ups for Actions & Emails)      -->
+    <!-- ========================================== -->
+    <div id="system-modal" class="fixed inset-0 z-[100] flex items-center justify-center modal-overlay hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50">
+                <h3 id="modal-title" class="font-bold text-slate-800 text-lg">Título</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+            </div>
+            <div id="modal-body" class="p-6 overflow-y-auto text-sm text-slate-600 space-y-4"></div>
+        </div>
+    </div>
+
+    <script>
+        const db = {
+            users: [
+                { id: 'KGS-1001', name: 'SafeTech Solutions', revenue: 275000, pastDue: false, password: '123', lastLogin: '2026-02-25', hasAccount: true },
+                { id: 'KGS-2002', name: 'Global Fire Security', revenue: 650000, pastDue: false, password: '123', lastLogin: '2026-02-20', hasAccount: true },
+                { id: 'KGS-3003', name: 'LatAm Proteção', revenue: 150000, pastDue: true, password: '123', lastLogin: '2026-01-15', hasAccount: true }, 
+                { id: 'KGS-9999', name: 'Cliente Novo S.A.', revenue: 60000, pastDue: false, password: '', lastLogin: null, hasAccount: false }
+            ],
+            requests: [
+                { id: 1, date: '25/02/2026', userId: 'KGS-2002', type: 'Fundo (Digital Ads)', detail: 'Campanha Google (PDF)', status: 'Pendente' },
+                { id: 2, date: '26/02/2026', userId: 'KGS-1001', type: 'Material', detail: '10x Catálogos Linha FX', status: 'Aprovado' }
+            ],
+            quickLinks: [
+                { id: 1, title: 'Portal Técnico (Documentação)', url: '#' },
+                { id: 2, title: 'Universidade Kidde (Treinamentos)', url: '#' },
+                { id: 3, title: 'Suporte Global (Tickets)', url: '#' }
+            ],
+            currentUser: null 
+        };
+
+        const tiers = [
+            { name: "Qualify", min: 50000 },
+            { name: "Preferred", min: 200000 },
+            { name: "Elite Strategic", min: 400000 },
+            { name: "Million Dollar", min: 1000000 }
+        ];
+
+        let progressChartInstance = null;
+
+        function showView(viewId) {
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-partner').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        function switchLoginTab(type) {
+            document.getElementById('tab-partner').className = type === 'partner' ? "flex-1 py-2 text-sm font-bold border-b-2 border-kidde-red text-kidde-red" : "flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+            document.getElementById('tab-admin').className = type === 'admin' ? "flex-1 py-2 text-sm font-bold border-b-2 border-kidde-red text-kidde-red" : "flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+            
+            document.getElementById('form-login-partner').style.display = type === 'partner' ? 'block' : 'none';
+            document.getElementById('form-login-admin').style.display = type === 'admin' ? 'block' : 'none';
+            document.getElementById('login-error').classList.add('hidden');
+        }
+
+        function handlePartnerLogin(e) {
+            e.preventDefault();
+            const id = document.getElementById('login-id').value.trim().toUpperCase();
+            const pass = document.getElementById('login-pass').value;
+            
+            const user = db.users.find(u => u.id === id && u.password === pass && u.hasAccount);
+            if (user) {
+                db.currentUser = user;
+                document.getElementById('login-id').value = '';
+                document.getElementById('login-pass').value = '';
+                document.getElementById('login-error').classList.add('hidden');
+                initPartnerView();
+                showView('view-partner');
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+            
+            if (user === 'admin' && pass === 'admin') {
+                document.getElementById('admin-user').value = '';
+                document.getElementById('admin-pass').value = '';
+                initAdminView();
+                showView('view-admin');
+            } else {
+                alert("Credenciais de admin incorretas (Use admin / admin)");
+            }
+        }
+
+        function logout() {
+            db.currentUser = null;
+            if(progressChartInstance) progressChartInstance.destroy();
+            showView('view-login');
+            switchLoginTab('partner');
+        }
+
+        function initPartnerView() {
+            const user = db.currentUser;
+            document.getElementById('partner-header-name').innerText = user.name;
+            document.getElementById('partner-header-id').innerText = `ID: ${user.id}`;
+            document.getElementById('partner-revenue').innerText = formatCurrency(user.revenue);
+
+            let currentTier = tiers[0];
+            let nextTier = null;
+            for (let i = tiers.length - 1; i >= 0; i--) {
+                if (user.revenue >= tiers[i].min) {
+                    currentTier = tiers[i];
+                    nextTier = i < tiers.length - 1 ? tiers[i+1] : null;
+                    break;
+                }
+            }
+
+            document.getElementById('partner-tier-badge').innerText = currentTier.name.toUpperCase();
+
+            const alertBox = document.getElementById('partner-pastdue-alert');
+            const fundBox = document.getElementById('partner-fund-box');
+            if (user.pastDue) {
+                alertBox.classList.remove('hidden');
+                fundBox.classList.add('opacity-50');
+                fundBox.querySelector('button').disabled = true;
+                fundBox.querySelector('button').classList.add('cursor-not-allowed');
+            } else {
+                alertBox.classList.add('hidden');
+                fundBox.classList.remove('opacity-50');
+                fundBox.querySelector('button').disabled = false;
+                fundBox.querySelector('button').classList.remove('cursor-not-allowed');
+            }
+
+            renderProgressChart(user.revenue, nextTier);
+
+            const linksUl = document.getElementById('partner-quick-links');
+            linksUl.innerHTML = '';
+            db.quickLinks.forEach(link => {
+                linksUl.innerHTML += `<li><a href="${link.url}" class="text-xs text-blue-600 hover:underline flex items-center gap-2"><span>▪</span> ${link.title}</a></li>`;
+            });
+        }
+
+        function renderProgressChart(revenue, nextTier) {
+            const ctx = document.getElementById('partnerProgressChart').getContext('2d');
+            if (progressChartInstance) progressChartInstance.destroy();
+
+            let missing = nextTier ? (nextTier.min - revenue) : 0;
+            if (missing < 0) missing = 0;
+
+            document.getElementById('partner-next-tier').innerText = nextTier ? nextTier.name : "Nível Máximo";
+            document.getElementById('partner-amount-next').innerText = nextTier ? formatCurrency(missing) : "Parabéns!";
+
+            progressChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Realizado', 'Faltante'],
+                    datasets: [{
+                        data: [revenue, missing],
+                        backgroundColor: ['#CE1126', '#e2e8f0'],
+                        borderWidth: 0, cutout: '75%'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function switchAdminTab(tabId) {
+            document.querySelectorAll('.admin-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active', 'bg-kidde-red', 'text-white'));
+            
+            document.getElementById(`admin-section-${tabId}`).classList.remove('hidden');
+            const btn = document.getElementById(`admin-tab-${tabId}`);
+            btn.classList.add('active', 'bg-kidde-red', 'text-white');
+            btn.classList.remove('hover:bg-slate-800');
+
+            if(tabId === 'clientes') renderAdminClients();
+            if(tabId === 'solicitacoes') renderAdminRequests();
+            if(tabId === 'config') renderAdminLinks();
+        }
+
+        function initAdminView() { switchAdminTab('clientes'); }
+
+        function renderAdminClients() {
+            const tbody = document.getElementById('admin-clients-tbody');
+            tbody.innerHTML = '';
+            db.users.forEach(u => {
+                const statusHtml = u.hasAccount 
+                    ? `<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Ativo</span>` 
+                    : `<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs">Pendente Reg.</span>`;
+                const pastDueHtml = u.pastDue 
+                    ? `<span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs ml-1">Past Due</span>` : '';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-4">${u.id}</td>
+                        <td class="p-4 font-medium text-slate-900">${u.name}</td>
+                        <td class="p-4">${formatCurrency(u.revenue)}</td>
+                        <td class="p-4">${statusHtml}${pastDueHtml}</td>
+                        <td class="p-4 text-right space-x-2">
+                            <button onclick="adminResetPassword('${u.id}')" class="text-xs text-blue-600 hover:underline">Resetar Senha</button>
+                            <button onclick="adminTogglePastDue('${u.id}')" class="text-xs text-orange-600 hover:underline">${u.pastDue ? 'Quitar' : 'Marcar Inadimplente'}</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderAdminRequests() {
+            const tbody = document.getElementById('admin-requests-tbody');
+            tbody.innerHTML = '';
+            if(db.requests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhuma solicitação no momento.</td></tr>`;
+                return;
+            }
+            db.requests.forEach(r => {
+                const isPending = r.status === 'Pendente';
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-4">${r.date}</td>
+                        <td class="p-4 font-medium">${r.userId}</td>
+                        <td class="p-4"><span class="bg-slate-100 px-2 py-1 rounded text-xs border">${r.type}</span></td>
+                        <td class="p-4 truncate max-w-[200px]">${r.detail}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 rounded text-xs ${isPending ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${r.status}</span>
+                        </td>
+                        <td class="p-4 text-right">
+                            ${isPending ? `<button onclick="approveRequest(${r.id})" class="text-xs bg-kidde-red text-white px-2 py-1 rounded hover:bg-red-700">Aprovar</button>` : '<span class="text-xs text-slate-400">Finalizado</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderAdminLinks() {
+            const container = document.getElementById('admin-links-container');
+            container.innerHTML = '';
+            db.quickLinks.forEach(l => {
+                container.innerHTML += `
+                    <div class="flex justify-between items-center bg-slate-50 p-2 border border-slate-200 rounded">
+                        <span class="text-sm font-medium text-slate-700">${l.title} <span class="text-xs text-slate-400 font-normal ml-2">(${l.url})</span></span>
+                        <button onclick="deleteQuickLink(${l.id})" class="text-red-500 text-xs hover:underline">Remover</button>
+                    </div>
+                `;
+            });
+        }
+
+        function adminResetPassword(userId) {
+            const user = db.users.find(u => u.id === userId);
+            const newPass = Math.floor(1000 + Math.random() * 9000).toString();
+            user.password = newPass;
+            
+            showModalEmail("Email de Recuperação (Simulação)", `
+                <p>Olá <strong>${user.name}</strong>,</p>
+                <p>O administrador do portal Kidde resetou sua senha a seu pedido.</p>
+                <div class="bg-slate-100 p-3 rounded mt-4 text-center">
+                    <p class="text-xs uppercase text-slate-500">Sua nova senha é</p>
+                    <p class="text-xl font-bold text-slate-900 tracking-widest">${newPass}</p>
+                </div>
+                <p class="mt-4 text-xs text-slate-400">Por favor, acesse o portal e recomendamos alterar esta senha em breve.</p>
+            `);
+        }
+
+        function adminTogglePastDue(userId) {
+            const user = db.users.find(u => u.id === userId);
+            user.pastDue = !user.pastDue;
+            renderAdminClients();
+        }
+
+        function approveRequest(reqId) {
+            const req = db.requests.find(r => r.id === reqId);
+            if(req) req.status = 'Aprovado';
+            renderAdminRequests();
+        }
+
+        function addQuickLink() {
+            const title = document.getElementById('new-link-title').value;
+            const url = document.getElementById('new-link-url').value || '#';
+            if(title) {
+                db.quickLinks.push({ id: Date.now(), title, url });
+                document.getElementById('new-link-title').value = '';
+                document.getElementById('new-link-url').value = '';
+                renderAdminLinks();
+            }
+        }
+        function deleteQuickLink(id) {
+            db.quickLinks = db.quickLinks.filter(l => l.id !== id);
+            renderAdminLinks();
+        }
+
+        function trigger30DayEmails() {
+            const inactiveUsers = db.users.filter(u => u.id === 'KGS-3003'); 
+            
+            if(inactiveUsers.length === 0) {
+                alert("Nenhum cliente inativo há mais de 30 dias no momento.");
+                return;
+            }
+
+            const user = inactiveUsers[0];
+            showModalEmail("Disparo Automático: Lembrete 30 Dias", `
+                <p class="text-xs text-orange-600 font-bold mb-2">Este email foi disparado para ${user.name} (${user.id})</p>
+                <hr class="mb-4">
+                <p>Olá <strong>${user.name}</strong>,</p>
+                <p>Notamos que você não acessa o Portal de Parceiros Kidde há mais de 30 dias. Venha conferir suas verbas de marketing e atualizações de nível!</p>
+                
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded mt-4">
+                    <p class="text-sm text-blue-900 font-bold mb-2">Seus dados de acesso:</p>
+                    <p class="text-sm"><strong>Link:</strong> <a href="#" class="text-blue-600 underline">portal.kiddeglobalsolutions.com</a></p>
+                    <p class="text-sm"><strong>Usuário:</strong> ${user.id}</p>
+                    <p class="text-sm"><strong>Senha:</strong> ${user.password}</p>
+                </div>
+            `);
+        }
+
+        function previewWelcomeEmail() {
+            showModalEmail("Template: Boas-vindas (Novo Cadastro)", `
+                <div class="text-center mb-4">
+                    <div class="w-12 h-12 bg-kidde-red rounded mx-auto flex items-center justify-center text-white font-bold text-2xl mb-2">K</div>
+                    <h3 class="font-bold text-lg text-slate-900">Bem-vindo à Kidde Global Solutions!</h3>
+                </div>
+                <p>Olá [Nome do Cliente],</p>
+                <p>Sua conta no novo <strong>Portal do Parceiro Kidde</strong> foi criada pela nossa equipe com sucesso.</p>
+                <p class="mt-2">Seu Número de Cliente para acesso é: <strong>[ID_GERADO]</strong></p>
+                <div class="text-center mt-6">
+                    <button class="bg-kidde-red text-white font-bold py-2 px-6 rounded cursor-default">Criar minha Senha de Acesso</button>
+                </div>
+                <p class="mt-6 text-xs text-slate-500 text-center">Clique no botão acima para definir sua senha e acessar o portal pela primeira vez.</p>
+            `);
+        }
+
+        function showModal(templateId) {
+            const modalBody = document.getElementById('modal-body');
+            const titleEl = document.getElementById('modal-title');
+            let content = '';
+            
+            if(templateId === 'modal-register') {
+                titleEl.innerText = "Primeiro Acesso / Registro";
+                content = `
+                    <p class="text-xs mb-4">Insira seu ID Kidde para criar sua senha. Você receberá um email confirmando o cadastro.</p>
+                    <input type="text" id="reg-id" class="w-full border rounded px-3 py-2 text-sm mb-3" placeholder="Número do Cliente (Ex: KGS-9999)">
+                    <input type="password" id="reg-pass" class="w-full border rounded px-3 py-2 text-sm mb-4" placeholder="Crie uma Senha">
+                    <button onclick="submitRegistration()" class="w-full bg-kidde-red text-white font-bold py-2 rounded">Cadastrar Senha</button>
+                `;
+            } 
+            else if (templateId === 'modal-forgot-pass') {
+                titleEl.innerText = "Recuperar Senha";
+                content = `
+                    <p class="text-xs mb-4">Insira seu Número de Cliente. Enviaremos um link de recuperação para o email cadastrado na conta.</p>
+                    <input type="text" id="forgot-id" class="w-full border rounded px-3 py-2 text-sm mb-4" placeholder="Seu ID Kidde">
+                    <button onclick="submitForgotPassword()" class="w-full bg-kidde-red text-white font-bold py-2 rounded">Enviar Email de Recuperação</button>
+                `;
+            }
+            else if (templateId === 'modal-marketing-fund') {
+                titleEl.innerText = "Uso do Fundo de Marketing";
+                content = `
+                    <p class="text-xs mb-4">Selecione o tipo de ação que deseja realizar com seu fundo (Saldo disponível: Simulado). A solicitação irá para aprovação da Kidde.</p>
+                    <select id="fund-type" class="w-full border border-slate-300 rounded px-3 py-2 text-sm mb-4 bg-white focus:ring-kidde-red focus:border-kidde-red">
+                        <option value="Campanha de Marketing Digital">Campanhas de marketing digital</option>
+                        <option value="Brindes Kidde">Compras de brindes Kidde</option>
+                        <option value="Workshop">Workshop</option>
+                        <option value="Treinamento">Treinamento</option>
+                        <option value="Feiras e Eventos">Participação em feiras e eventos</option>
+                        <option value="Aluguel de Espaço">Aluguel de espaço para eventos</option>
+                        <option value="Anúncios Parceiros">Anúncios digitais em parceria</option>
+                    </select>
+                    <textarea id="fund-desc" class="w-full border rounded px-3 py-2 text-sm mb-4 h-20" placeholder="Breve descrição da ação..."></textarea>
+                    <button onclick="submitPartnerRequest('Fundo')" class="w-full bg-kidde-red text-white font-bold py-2 rounded">Enviar Solicitação para Admin</button>
+                `;
+            }
+            else if (templateId === 'modal-upload-evidence') {
+                titleEl.innerText = "Subir Evidência de Fundo";
+                content = `
+                    <p class="text-xs mb-4">Envie notas fiscais ou fotos das campanhas realizadas para liberação de fundos.</p>
+                    <input type="text" id="evid-desc" class="w-full border rounded px-3 py-2 text-sm mb-3" placeholder="Referente a qual projeto/ação?">
+                    <div class="drop-zone h-32 rounded flex flex-col items-center justify-center text-center cursor-pointer mb-4">
+                        <span class="text-2xl text-slate-300 mb-1">☁️</span>
+                        <p class="text-xs text-slate-500 font-medium">Anexar Arquivo (PDF, JPG)</p>
+                    </div>
+                    <button onclick="submitPartnerRequest('Evidência')" class="w-full bg-orange-500 text-white font-bold py-2 rounded">Enviar Evidência ao Admin</button>
+                `;
+            }
+            else if (templateId === 'modal-request-material') {
+                titleEl.innerText = "Solicitação de Materiais";
+                content = `
+                    <p class="text-xs mb-4">Descreva o material promocional ou catálogos desejados.</p>
+                    <textarea id="mat-desc" class="w-full border rounded px-3 py-2 text-sm mb-4 h-24" placeholder="Ex: 50x Catálogos Linha XYZ em Espanhol..."></textarea>
+                    <button onclick="submitPartnerRequest('Material')" class="w-full bg-blue-600 text-white font-bold py-2 rounded">Enviar Pedido</button>
+                `;
+            }
+            else if (templateId === 'modal-admin-add-client') {
+                titleEl.innerText = "Cadastrar Cliente Manual";
+                content = `
+                    <input type="text" id="add-id" class="w-full border rounded px-3 py-2 text-sm mb-3" placeholder="ID (Ex: KGS-4004)">
+                    <input type="text" id="add-name" class="w-full border rounded px-3 py-2 text-sm mb-3" placeholder="Nome da Empresa">
+                    <input type="number" id="add-rev" class="w-full border rounded px-3 py-2 text-sm mb-4" placeholder="Receita Inicial (USD)">
+                    <button onclick="adminSaveClient()" class="w-full bg-kidde-red text-white font-bold py-2 rounded">Salvar e Enviar Convite</button>
+                `;
+            }
+            else if (templateId === 'modal-admin-upload-excel') {
+                titleEl.innerText = "Upload Base de Clientes (Excel)";
+                content = `
+                    <p class="text-xs mb-4">Faça o upload da planilha atualizada contendo os dados de venda (YTD) e novos clientes.</p>
+                    <div class="drop-zone h-32 rounded flex flex-col items-center justify-center text-center cursor-pointer mb-4">
+                        <span class="text-2xl text-slate-300 mb-1">📊</span>
+                        <p class="text-xs text-slate-500 font-medium">Arraste a planilha (.xlsx)</p>
+                    </div>
+                    <button onclick="adminSimulateExcelUpload()" class="w-full bg-green-600 text-white font-bold py-2 rounded">Processar Arquivo</button>
+                `;
+            }
+
+            modalBody.innerHTML = content;
+            document.getElementById('system-modal').classList.remove('hidden');
+        }
+
+        function showModalEmail(subject, htmlContent) {
+            document.getElementById('modal-title').innerText = "✉️ " + subject;
+            document.getElementById('modal-body').innerHTML = `
+                <div class="border border-slate-200 p-4 rounded bg-white text-slate-700">
+                    ${htmlContent}
+                </div>
+                <button onclick="closeModal()" class="w-full mt-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 rounded">Fechar Janela</button>
+            `;
+            document.getElementById('system-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('system-modal').classList.add('hidden');
+        }
+
+        function submitRegistration() {
+            const id = document.getElementById('reg-id').value.toUpperCase();
+            const pass = document.getElementById('reg-pass').value;
+            const user = db.users.find(u => u.id === id);
+            
+            if(user && !user.hasAccount && pass.length > 0) {
+                user.password = pass;
+                user.hasAccount = true;
+                closeModal();
+                showModalEmail("Confirmação de Cadastro", `
+                    <p>Olá <strong>${user.name}</strong>,</p>
+                    <p>Sua senha foi registrada com sucesso no Portal do Parceiro Kidde.</p>
+                    <p class="mt-2">Você já pode acessar a plataforma utilizando seu ID (<strong>${user.id}</strong>) e a senha criada.</p>
+                `);
+            } else {
+                alert("ID não encontrado na base de pendentes ou senha vazia. (Dica de teste: use KGS-9999)");
+            }
+        }
+
+        function submitForgotPassword() {
+            const id = document.getElementById('forgot-id').value.toUpperCase();
+            const user = db.users.find(u => u.id === id && u.hasAccount);
+            closeModal();
+            if(user) {
+                showModalEmail("Recuperação de Senha Kidde", `
+                    <p>Olá <strong>${user.name}</strong>,</p>
+                    <p>Recebemos um pedido para redefinir sua senha.</p>
+                    <div class="text-center mt-4 mb-4">
+                        <a href="#" class="inline-block bg-kidde-red text-white font-bold py-2 px-6 rounded text-sm hover:bg-red-700">Redefinir Minha Senha</a>
+                    </div>
+                    <p class="text-xs text-slate-400">Se você não solicitou, ignore este email.</p>
+                `);
+            } else {
+                alert("ID não encontrado no sistema.");
+            }
+        }
+
+        function submitPartnerRequest(reqClass) {
+            let detail = "";
+            let type = reqClass;
+
+            if(reqClass === 'Fundo') {
+                const sel = document.getElementById('fund-type');
+                type = "Fundo (" + sel.options[sel.selectedIndex].text + ")";
+                detail = document.getElementById('fund-desc').value;
+            } else if (reqClass === 'Evidência') {
+                detail = "Arquivo anexado. Ref: " + document.getElementById('evid-desc').value;
+            } else if (reqClass === 'Material') {
+                detail = document.getElementById('mat-desc').value;
+            }
+
+            if(!detail) { alert("Preencha os dados obrigatórios."); return; }
+
+            db.requests.unshift({
+                id: Date.now(),
+                date: new Date().toLocaleDateString('pt-BR'),
+                userId: db.currentUser.id,
+                type: type,
+                detail: detail,
+                status: 'Pendente'
+            });
+
+            closeModal();
+            alert(`Sua solicitação (${reqClass}) foi enviada aos administradores da Kidde com sucesso!`);
+        }
+
+        function adminSaveClient() {
+            const id = document.getElementById('add-id').value.toUpperCase();
+            const name = document.getElementById('add-name').value;
+            const rev = parseInt(document.getElementById('add-rev').value || 0);
+            
+            if(id && name) {
+                db.users.push({ id, name, revenue: rev, pastDue: false, password: '', lastLogin: null, hasAccount: false });
+                closeModal();
+                renderAdminClients();
+                previewWelcomeEmail(); 
+            }
+        }
+
+        function adminSimulateExcelUpload() {
+            closeModal();
+            db.users.push({ id: 'KGS-EXCEL', name: 'Excel Import Corp', revenue: 320000, pastDue: false, password: '', lastLogin: null, hasAccount: false });
+            renderAdminClients();
+            alert("Planilha processada! Dados de receita atualizados e novos clientes importados para a base.");
+        }
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+        }
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'text-slate-900', 'border-kidde-red'));
+            event.target.classList.add('active', 'text-slate-900', 'border-kidde-red');
+        }
+
+    </script>
+</body>
+</html>
