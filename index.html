@@ -51,7 +51,20 @@
         /* Drag & Drop Zone */
         .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.2s ease; }
         .drop-zone.dragover { border-color: #CE1126; background-color: #fef2f2; }
+        .drop-zone:hover { background-color: #f8fafc; }
     </style>
+
+    <!-- Placeholder Comments -->
+    <!-- Chosen Palette: Kidde Corporate (Red #CE1126, Blue #005696, Neutral Greys). -->
+    <!-- Application Structure Plan: 
+         1. Authentication Layer.
+         2. Partner View (Dashboard, Tiers, Operational Hub with file upload logic).
+         3. Admin View (Client Management with Edit Revenue, Real File Inputs for Excel).
+    -->
+    <!-- Visualization & Content Choices:
+         - Real File Inputs: Replaced simple divs with hidden <input type="file"> triggered by clicks on the drop zones to ensure native OS file pickers work.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 </head>
 <body class="text-slate-800 h-screen flex flex-col overflow-hidden">
 
@@ -76,11 +89,11 @@
             <form id="form-login-partner" onsubmit="handlePartnerLogin(event)" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Número do Cliente (ID)</label>
-                    <input type="text" id="login-id" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" placeholder="Ex: KGS-8821" required>
+                    <input type="text" id="login-id" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" placeholder="Ex: KGS-1001" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Senha</label>
-                    <input type="password" id="login-pass" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" required>
+                    <input type="password" id="login-pass" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" placeholder="123" required>
                 </div>
                 <div class="flex justify-between items-center text-xs">
                     <button type="button" onclick="showModal('modal-register')" class="text-kidde-blue hover:underline font-medium">Primeiro Acesso?</button>
@@ -101,7 +114,6 @@
                     <input type="password" id="admin-pass" class="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:ring-kidde-red focus:border-kidde-red" placeholder="admin" required>
                 </div>
                 <button type="submit" class="w-full bg-slate-900 text-white font-bold py-2 rounded hover:bg-slate-800 transition">Acessar Painel</button>
-                <p class="text-xs text-slate-400 text-center mt-2">Dica: Use admin / admin para testar.</p>
             </form>
         </div>
     </div>
@@ -130,7 +142,7 @@
                             <div id="partner-header-name" class="text-sm font-medium text-slate-900">Empresa</div>
                             <div id="partner-header-id" class="text-xs text-slate-500">ID: ---</div>
                         </div>
-                        <button onclick="logout()" class="text-xs text-red-600 font-bold hover:underline">Sair</button>
+                        <button onclick="logout()" class="text-xs text-red-600 font-bold hover:underline border border-red-200 bg-red-50 px-3 py-1 rounded">Sair</button>
                     </div>
                 </div>
             </div>
@@ -175,7 +187,7 @@
                                                 <p class="text-xs text-green-600">Disponível para uso</p>
                                             </div>
                                         </div>
-                                        <button onclick="showModal('modal-marketing-fund')" class="text-xs bg-white border border-green-300 text-green-700 font-bold px-3 py-1.5 rounded hover:bg-green-100 transition">Acessar</button>
+                                        <button onclick="showModal('modal-marketing-fund')" class="text-xs bg-white border border-green-300 text-green-700 font-bold px-3 py-1.5 rounded hover:bg-green-100 transition shadow-sm">Acessar</button>
                                     </div>
                                 </div>
                             </div>
@@ -309,8 +321,8 @@
                         <p class="text-sm text-slate-500">Adicione, edite números e gerencie o acesso das contas.</p>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="showModal('modal-admin-add-client')" class="bg-kidde-red text-white px-4 py-2 rounded text-sm font-bold shadow hover:bg-red-700">Novo Cliente Manual</button>
-                        <button onclick="showModal('modal-admin-upload-excel')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold shadow hover:bg-green-700">Subir Base Excel</button>
+                        <button onclick="showModal('modal-admin-add-client')" class="bg-kidde-red text-white px-4 py-2 rounded text-sm font-bold shadow hover:bg-red-700 transition">Novo Cliente Manual</button>
+                        <button onclick="showModal('modal-admin-upload-excel')" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold shadow hover:bg-green-700 transition">Subir Base Excel</button>
                     </div>
                 </div>
 
@@ -575,7 +587,11 @@
         function renderAdminClients() {
             const tbody = document.getElementById('admin-clients-tbody');
             tbody.innerHTML = '';
-            db.users.forEach(u => {
+            
+            // Ordena os usuários por nome
+            const sortedUsers = [...db.users].sort((a,b) => a.name.localeCompare(b.name));
+
+            sortedUsers.forEach(u => {
                 const statusHtml = u.hasAccount 
                     ? `<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Ativo</span>` 
                     : `<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs">Pendente Reg.</span>`;
@@ -586,11 +602,14 @@
                     <tr>
                         <td class="p-4">${u.id}</td>
                         <td class="p-4 font-medium text-slate-900">${u.name}</td>
-                        <td class="p-4">${formatCurrency(u.revenue)}</td>
+                        <td class="p-4 font-bold text-kidde-blue">${formatCurrency(u.revenue)}</td>
                         <td class="p-4">${statusHtml}${pastDueHtml}</td>
-                        <td class="p-4 text-right space-x-2">
-                            <button onclick="adminResetPassword('${u.id}')" class="text-xs text-blue-600 hover:underline">Resetar Senha</button>
-                            <button onclick="adminTogglePastDue('${u.id}')" class="text-xs text-orange-600 hover:underline">${u.pastDue ? 'Quitar' : 'Marcar Inadimplente'}</button>
+                        <td class="p-4 text-right">
+                            <div class="flex flex-col gap-1 items-end">
+                                <button onclick="showModal('modal-admin-edit-rev', '${u.id}')" class="text-[11px] font-bold text-kidde-red hover:underline border border-transparent hover:border-red-100 rounded px-1">Editar Receita</button>
+                                <button onclick="adminResetPassword('${u.id}')" class="text-[11px] text-blue-600 hover:underline">Resetar Senha</button>
+                                <button onclick="adminTogglePastDue('${u.id}')" class="text-[11px] text-orange-600 hover:underline">${u.pastDue ? 'Quitar Dívida' : 'Marcar Inadimplente'}</button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -611,12 +630,12 @@
                         <td class="p-4">${r.date}</td>
                         <td class="p-4 font-medium">${r.userId}</td>
                         <td class="p-4"><span class="bg-slate-100 px-2 py-1 rounded text-xs border">${r.type}</span></td>
-                        <td class="p-4 truncate max-w-[200px]">${r.detail}</td>
+                        <td class="p-4 text-xs max-w-[200px] break-words">${r.detail}</td>
                         <td class="p-4">
-                            <span class="px-2 py-1 rounded text-xs ${isPending ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${r.status}</span>
+                            <span class="px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider ${isPending ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${r.status}</span>
                         </td>
                         <td class="p-4 text-right">
-                            ${isPending ? `<button onclick="approveRequest(${r.id})" class="text-xs bg-kidde-red text-white px-2 py-1 rounded hover:bg-red-700">Aprovar</button>` : '<span class="text-xs text-slate-400">Finalizado</span>'}
+                            ${isPending ? `<button onclick="approveRequest(${r.id})" class="text-xs font-bold bg-kidde-red text-white px-3 py-1.5 rounded hover:bg-red-700 transition">Aprovar</button>` : '<span class="text-xs text-slate-400">Finalizado</span>'}
                         </td>
                     </tr>
                 `;
@@ -719,7 +738,8 @@
             `);
         }
 
-        function showModal(templateId) {
+        // UPDATE: Modified showModal to accept optional 'data' parameter (for User ID)
+        function showModal(templateId, data = null) {
             const modalBody = document.getElementById('modal-body');
             const titleEl = document.getElementById('modal-title');
             let content = '';
@@ -759,15 +779,20 @@
                 `;
             }
             else if (templateId === 'modal-upload-evidence') {
+                // UPDATE: Added real <input type="file"> hidden and linked to the drop-zone
                 titleEl.innerText = "Subir Evidência de Fundo";
                 content = `
                     <p class="text-xs mb-4">Envie notas fiscais ou fotos das campanhas realizadas para liberação de fundos.</p>
                     <input type="text" id="evid-desc" class="w-full border rounded px-3 py-2 text-sm mb-3" placeholder="Referente a qual projeto/ação?">
-                    <div class="drop-zone h-32 rounded flex flex-col items-center justify-center text-center cursor-pointer mb-4">
+                    
+                    <input type="file" id="evid-file" class="hidden" accept=".pdf, .jpg, .jpeg, .png" onchange="document.getElementById('evid-filename').innerText = this.files[0] ? this.files[0].name : 'Nenhum arquivo selecionado'">
+                    <div onclick="document.getElementById('evid-file').click()" class="drop-zone h-32 rounded flex flex-col items-center justify-center text-center cursor-pointer mb-4">
                         <span class="text-2xl text-slate-300 mb-1">☁️</span>
-                        <p class="text-xs text-slate-500 font-medium">Anexar Arquivo (PDF, JPG)</p>
+                        <p class="text-xs text-slate-500 font-medium">Clique para Anexar Arquivo (PDF, Imagem)</p>
+                        <p id="evid-filename" class="text-[11px] font-bold text-kidde-blue mt-2">Nenhum arquivo selecionado</p>
                     </div>
-                    <button onclick="submitPartnerRequest('Evidência')" class="w-full bg-orange-500 text-white font-bold py-2 rounded">Enviar Evidência ao Admin</button>
+
+                    <button onclick="submitPartnerRequest('Evidência')" class="w-full bg-orange-500 text-white font-bold py-2 rounded hover:bg-orange-600">Enviar Evidência ao Admin</button>
                 `;
             }
             else if (templateId === 'modal-request-material') {
@@ -788,14 +813,30 @@
                 `;
             }
             else if (templateId === 'modal-admin-upload-excel') {
+                // UPDATE: Added real <input type="file"> hidden and linked to the drop-zone
                 titleEl.innerText = "Upload Base de Clientes (Excel)";
                 content = `
                     <p class="text-xs mb-4">Faça o upload da planilha atualizada contendo os dados de venda (YTD) e novos clientes.</p>
-                    <div class="drop-zone h-32 rounded flex flex-col items-center justify-center text-center cursor-pointer mb-4">
+                    
+                    <input type="file" id="excel-file" class="hidden" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onchange="document.getElementById('excel-filename').innerText = this.files[0] ? this.files[0].name : 'Nenhum arquivo selecionado'">
+                    <div onclick="document.getElementById('excel-file').click()" class="drop-zone h-32 rounded flex flex-col items-center justify-center text-center cursor-pointer mb-4">
                         <span class="text-2xl text-slate-300 mb-1">📊</span>
-                        <p class="text-xs text-slate-500 font-medium">Arraste a planilha (.xlsx)</p>
+                        <p class="text-xs text-slate-500 font-medium">Clique para buscar a planilha (.xlsx ou .csv)</p>
+                        <p id="excel-filename" class="text-[11px] font-bold text-green-600 mt-2">Nenhum arquivo selecionado</p>
                     </div>
-                    <button onclick="adminSimulateExcelUpload()" class="w-full bg-green-600 text-white font-bold py-2 rounded">Processar Arquivo</button>
+
+                    <button onclick="adminSimulateExcelUpload()" class="w-full bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700">Processar Arquivo</button>
+                `;
+            }
+            else if (templateId === 'modal-admin-edit-rev') {
+                // UPDATE: New Modal for Editing Revenue
+                const user = db.users.find(u => u.id === data);
+                titleEl.innerText = "Editar Receita - " + user.name;
+                content = `
+                    <p class="text-xs mb-4">Ajuste manualmente o valor de compras no ano para o cliente <strong>${user.id}</strong>.</p>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Receita Atual (USD)</label>
+                    <input type="number" id="edit-rev-val" class="w-full border rounded px-3 py-2 text-sm mb-4" value="${user.revenue}">
+                    <button onclick="adminSaveRevenue('${user.id}')" class="w-full bg-kidde-red text-white font-bold py-2 rounded hover:bg-red-700">Salvar Novo Valor</button>
                 `;
             }
 
@@ -816,6 +857,16 @@
 
         function closeModal() {
             document.getElementById('system-modal').classList.add('hidden');
+        }
+
+        // UPDATE: Saves the edited revenue and re-renders
+        function adminSaveRevenue(userId) {
+            const user = db.users.find(u => u.id === userId);
+            const newRev = parseInt(document.getElementById('edit-rev-val').value || 0);
+            
+            user.revenue = newRev;
+            closeModal();
+            renderAdminClients();
         }
 
         function submitRegistration() {
@@ -864,7 +915,14 @@
                 type = "Fundo (" + sel.options[sel.selectedIndex].text + ")";
                 detail = document.getElementById('fund-desc').value;
             } else if (reqClass === 'Evidência') {
-                detail = "Arquivo anexado. Ref: " + document.getElementById('evid-desc').value;
+                // UPDATE: Validates file input
+                const fileInput = document.getElementById('evid-file');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert("Por favor, clique na nuvem e selecione um arquivo de evidência para enviar.");
+                    return;
+                }
+                const projRef = document.getElementById('evid-desc').value;
+                detail = `Anexo: ${fileInput.files[0].name} | Ref: ${projRef ? projRef : 'Sem ref.'}`;
             } else if (reqClass === 'Material') {
                 detail = document.getElementById('mat-desc').value;
             }
@@ -897,11 +955,32 @@
             }
         }
 
+        // UPDATE: Processes actual file selection and simulates data injection
         function adminSimulateExcelUpload() {
+            const fileInput = document.getElementById('excel-file');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Por favor, clique na área indicada e selecione um arquivo em Excel ou CSV primeiro.");
+                return;
+            }
+
+            const fileName = fileInput.files[0].name;
             closeModal();
-            db.users.push({ id: 'KGS-EXCEL', name: 'Excel Import Corp', revenue: 320000, pastDue: false, password: '', lastLogin: null, hasAccount: false });
-            renderAdminClients();
-            alert("Planilha processada! Dados de receita atualizados e novos clientes importados para a base.");
+            
+            // Simulação de processamento de um Excel real
+            setTimeout(() => {
+                // Adiciona clientes baseados na "leitura" da planilha
+                db.users.push({ id: 'KGS-EXC1', name: 'Alpha Fire Systems (Importado)', revenue: 120000, pastDue: false, password: '', lastLogin: null, hasAccount: false });
+                db.users.push({ id: 'KGS-EXC2', name: 'Bravo Security Corp (Importado)', revenue: 450000, pastDue: false, password: '', lastLogin: null, hasAccount: false });
+                
+                // Atualiza um cliente existente para simular variação de YTD
+                if (db.users[0]) {
+                    db.users[0].revenue += 50000;
+                }
+
+                renderAdminClients();
+                alert(`Sucesso! O arquivo "${fileName}" foi processado.\n\n- 2 Novos canais inseridos na base.\n- Dados de Receita YTD de clientes existentes foram atualizados de acordo com a planilha.`);
+            }, 600); // pequeno delay para dar sensação de upload/leitura
         }
 
         function formatCurrency(val) {
